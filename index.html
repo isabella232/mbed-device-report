@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mbed Device Report</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link href="https://fonts.googleapis.com/css?family=Raleway:400,600" rel="stylesheet">
+	<style>
+        html { margin: 0; padding: 0; border: 0; }
+        body { font-family: 'Raleway', sans-serif; color: #d7ecfb; background-color: #072b44; text-align: center; }
+        h1 { font-weight: 400; }
+	</style>
+</head>
+<body>
+    <h1>Mbed Device Report</h1>
+    <div id="result"></div>
+
+    <script type="module">
+        import { runReport } from "./dist/index.js";
+
+        const resultEl = document.getElementById("result");
+
+        (async () => {
+            const report = await runReport();
+            console.log(report);
+        })();
+    </script>
+</body>
+</html>
