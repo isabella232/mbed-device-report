@@ -145,7 +145,7 @@ const packDevices = (apiTargets: ApiTarget[], packs: CmsisPacks): result[] => {
 
     return [
         {
-            heading: 'API devices without debug target not found in Mbed Studio',
+            heading: 'API devices with debug target, but not found in Mbed Studio',
             data: missing
         },
         {
