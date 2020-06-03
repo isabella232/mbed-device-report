@@ -2,7 +2,7 @@
  * Copyright (c) Arm Ltd
  */
 
-const BRANCH = 'master';
+export const BRANCH = 'master';
 const TARGET_URL = `https://raw.githubusercontent.com/ARMmbed/mbed-os/${BRANCH}/targets/targets.json`;
 
 /**

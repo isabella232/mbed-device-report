@@ -11,10 +11,28 @@ export interface CmsisPacks {
             enabled: boolean;
         }
     };
+    boards: {
+        [key: string]: {
+            deviceNames: string[];
+            packId: string;
+        }
+    },
+    packs: {
+        [key: string]: {
+            version: string;
+            family: string;
+            vendor: string;
+            packName: string;
+            bundledPackName: string;
+        }
+    },
+    vendors: {
+        [key: string]: string[];
+    }
 }
 
 export const getCmsisPacks = async (): Promise<CmsisPacks> => {
-    const response = await fetch(PACKS_URL, { mode: 'no-cors' });
-    const json: CmsisPacks = await response.json();
+    const response = await fetch(PACKS_URL);
+    const json = await response.json();
     return json;
 };

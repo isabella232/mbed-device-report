@@ -3,7 +3,7 @@
  */
 
 import { getApiTargets, ApiTarget } from './api-targets';
-import { getMbedTargets, TargetsJson } from './mbed-targets';
+import { getMbedTargets, TargetsJson, BRANCH } from './mbed-targets';
 import { getCmsisPacks, CmsisPacks } from './cmsis-packs';
 
 interface result {
@@ -11,10 +11,50 @@ interface result {
     data: string[];
 }
 
+const stats = (apiTargets: ApiTarget[], mbedTargets: TargetsJson, packs: CmsisPacks): result[] => {
+
+    let apiPacks = 0;
+    let deviceNames = 0;
+
+    apiTargets.forEach(apiTarget => {
+        if (apiTarget.device_name && packs.devices[apiTarget.device_name]) {
+            apiPacks ++;
+        }
+
+        const key = apiTarget.board_type.toUpperCase();
+        const mbedTarget = mbedTargets[key];
+
+        if (mbedTarget) {
+            if (!!mbedTarget.device_name && !!apiTarget.device_name && mbedTarget.device_name === apiTarget.device_name) {
+                deviceNames ++;
+            }
+        }
+    });
+
+    const detectKeys = Object.keys(mbedTargets).filter(key => {
+        const code = mbedTargets[key].detect_code;
+        return (code && code.length);
+    });
+
+    return [{
+        heading: 'Statistics',
+        data: [
+            `Devices in the API: ${apiTargets.length}`,
+            `Devices in Mbed OS ${BRANCH}: ${Object.keys(mbedTargets).length}`,
+            `CMSIS Packs in Mbed Studio: ${Object.keys(packs.packs).length}`,
+            `Device Names in Mbed Studio: ${Object.keys(packs.devices).length}`,
+            `API devices with matching packs in Mbed Studio: ${apiPacks}`,
+            `API devices with matching device_name in Mbed OS ${BRANCH}: ${deviceNames}`,
+            `Mbed OS ${BRANCH} devices with a detect key : ${detectKeys.length}`
+        ]
+    }];
+};
+
 const deviceNames = (apiTargets: ApiTarget[], mbedTargets: TargetsJson): result[] => {
-    console.log(`api entries: ${apiTargets.length}`);
-    console.log(`targets.json entries: ${Object.keys(mbedTargets).length}`);
-    const keys: string[] = [];
+
+    let missingApi: string[] = [];
+    let missingMbed: string[] = [];
+    let misMatch: string[] = [];
 
     apiTargets.forEach(apiTarget => {
         const key = apiTarget.board_type.toUpperCase();
@@ -22,79 +62,70 @@ const deviceNames = (apiTargets: ApiTarget[], mbedTargets: TargetsJson): result[
 
         if (mbedTarget) {
             if (mbedTarget.device_name && !apiTarget.device_name) {
-                console.log(`API target with code ${apiTarget.product_code}: missing Mbed device_name: ${mbedTarget.device_name}`);
+                missingApi.push(`${key} - ${mbedTarget.device_name}`);
             }
 
             if (!mbedTarget.device_name && apiTarget.device_name) {
-                console.log(`Mbed target with key ${key}: missing API device_name: ${apiTarget.device_name}`);
+                missingMbed.push(`${key} - ${apiTarget.device_name}`);
             }
 
-            if (!!mbedTarget.device_name && !!apiTarget.device_name) {
-
-                if (mbedTarget.device_name === apiTarget.device_name) {
-                    keys.push(key);
-                } else {
-                    console.log(`code ${apiTarget.product_code} mismatch: API ${apiTarget.device_name}, Mbed: ${mbedTarget.device_name}`);
-                }
+            if (!!mbedTarget.device_name && !!apiTarget.device_name && mbedTarget.device_name !== apiTarget.device_name) {
+                misMatch.push(`${key} - API: ${apiTarget.device_name}, Mbed: ${mbedTarget.device_name}`);
             }
         }
     });
 
-    console.log(`${keys.length} matching device names!`);
-    return [];
+    return [
+        {
+            heading: `API devices without device name found in Mbed OS ${BRANCH}`,
+            data: missingApi
+        },
+        {
+            heading: `Mbed OS ${BRANCH} devices without device name found in API`,
+            data: missingMbed
+        },
+        {
+            heading: `Device names mis-matching between Mbed OS ${BRANCH} and API`,
+            data: misMatch
+        }
+    ];
 };
 
 const detectCodes = (apiTargets: ApiTarget[], mbedTargets: TargetsJson): result[] => {
 
-    console.log(`targets.json entries: ${Object.keys(mbedTargets).length}`);
-
-    let keys = Object.keys(mbedTargets).filter(key => {
+    const multipleDetect: string[] = [];
+    Object.keys(mbedTargets).forEach(key => {
         const code = mbedTargets[key].detect_code;
-        return (code && code.length === 1);
+        if (code && code.length > 1) {
+            multipleDetect.push(key);
+        }
     });
 
-    console.log(`targets.json entries with a single detect code: ${keys.length}`);
-
-    keys = Object.keys(mbedTargets).filter(key => {
-        const code = mbedTargets[key].detect_code;
-        return (code && code.length > 1);
-    });
-
-    console.log(`targets.json entries with multiple detect codes: ${keys.length}`);
-
-    keys = [];
-
+    const missingDetect: string[] = [];
     apiTargets.forEach(apiTarget => {
         const key = apiTarget.board_type.toUpperCase();
         const mbedTarget = mbedTargets[key];
 
-        if (mbedTarget) {
-            if (mbedTarget.device_name && !apiTarget.device_name) {
-                keys.push(key);
-            }
-
-            if (!mbedTarget.detect_code || mbedTarget.detect_code.length === 0) {
-                mbedTarget.detect_code = [apiTarget.product_code];
-            }
+        if (mbedTarget && (!mbedTarget.detect_code || mbedTarget.detect_code.length === 0)) {
+            missingDetect.push(`${key} - ${apiTarget.product_code}`);
         }
     });
 
-    console.log(`targets.json entries with device_name not in API: ${keys}`);
-
-    keys = Object.keys(mbedTargets).filter(key => {
-        const code = mbedTargets[key].detect_code;
-        return (code && code.length === 1);
-    });
-
-    console.log(`targets.json entries with a single detect code: ${keys.length}`);
-
-    return [];
+    return [
+        {
+            heading: `Mbed OS ${BRANCH} devices with multiple detect codes`,
+            data: multipleDetect
+        },
+        {
+            heading: `Mbed OS ${BRANCH} devices missing detect code from API`,
+            data: missingDetect
+        }
+    ];
 };
 
 const packDevices = (apiTargets: ApiTarget[], packs: CmsisPacks): result[] => {
-    console.log(`api entries: ${apiTargets.length}`);
-    let found = 0;
     const missing: string[] = [];
+    const disabled: string[] = [];
 
     apiTargets.forEach(apiTarget => {
         if (apiTarget.device_name) {
@@ -102,20 +133,26 @@ const packDevices = (apiTargets: ApiTarget[], packs: CmsisPacks): result[] => {
             const entry = packs.devices[deviceName];
 
             if (!entry) {
-                missing.push(deviceName);
+                missing.push(`${apiTarget.name} - ${deviceName}`);
                 return;
             }
 
-            found ++;
             if (!entry.enabled) {
-                console.log(`${deviceName} is disabled!`);
+                disabled.push(`${apiTarget.name} - ${deviceName}`);
             }
         }
     });
 
-    missing.forEach(miss => console.log(`missing device_name: ${miss}`));
-    console.log(`${found} api entries with packs!`);
-    return [];
+    return [
+        {
+            heading: 'API devices without device name in Mbed Studio packs',
+            data: missing
+        },
+        {
+            heading: 'API devices with disabled device name in Mbed Studio packs',
+            data: disabled
+        }
+    ];
 };
 
 export const runReport = async (): Promise<result[]> => {
@@ -123,13 +160,15 @@ export const runReport = async (): Promise<result[]> => {
     const mbedTargets = await getMbedTargets();
     const cmsisPacks = await getCmsisPacks();
 
+    const statResults = stats(apiTargets, mbedTargets, cmsisPacks);
     const deviceNameResults = deviceNames(apiTargets, mbedTargets);
     const detectCodeResults = detectCodes(apiTargets, mbedTargets);
     const packDeviceResults = packDevices(apiTargets, cmsisPacks);
 
-    return {
+    return [
+        ...statResults,
         ...deviceNameResults,
         ...detectCodeResults,
         ...packDeviceResults
-    };
+    ];
 };

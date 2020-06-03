@@ -4,25 +4,62 @@
     <title>Mbed Device Report</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <link href="https://fonts.googleapis.com/css?family=Raleway:400,600" rel="stylesheet">
-	<style>
-        html { margin: 0; padding: 0; border: 0; }
-        body { font-family: 'Raleway', sans-serif; color: #d7ecfb; background-color: #072b44; text-align: center; }
-        h1 { font-weight: 400; }
-	</style>
+
+    <link rel="stylesheet" href='https://fonts.googleapis.com/css?family=Raleway:400,300,600' >
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
+    <style>
+        body {
+            background-color: #181e26;
+            color: #ccc;
+            font-size: 14pt;
+        }
+        h1 {
+            text-align: center;
+        }
+        h2 {
+            padding-top: 20px;
+            color: #fff;
+        }
+        img {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
 </head>
 <body>
     <h1>Mbed Device Report</h1>
+    <img id="loading" src="./loading.gif" />
     <div id="result"></div>
 
     <script type="module">
         import { runReport } from "./dist/index.js";
 
+        const loadingEl = document.getElementById("loading");
         const resultEl = document.getElementById("result");
 
         (async () => {
             const report = await runReport();
-            console.log(report);
+            loadingEl.style.display = "none";
+
+            for (const item of report) {
+                const heading = document.createElement("h2");
+                heading.textContent = item.heading;
+                resultEl.appendChild(heading);
+
+                if (!item.data.length) {
+                    const para = document.createElement("div");
+                    para.textContent = '<NONE>';
+                    resultEl.appendChild(para);
+                } else {
+                    for (const line of item.data) {
+                        const para = document.createElement("div");
+                        para.textContent = line;
+                        resultEl.appendChild(para);
+                    }
+                }
+            }
         })();
     </script>
 </body>
