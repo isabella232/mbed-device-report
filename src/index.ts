@@ -42,10 +42,10 @@ const stats = (apiTargets: ApiTarget[], mbedTargets: TargetsJson, packs: CmsisPa
             `Devices in the API: ${apiTargets.length}`,
             `Devices in Mbed OS ${BRANCH}: ${Object.keys(mbedTargets).length}`,
             `CMSIS Packs in Mbed Studio: ${Object.keys(packs.packs).length}`,
-            `Device Names in Mbed Studio: ${Object.keys(packs.devices).length}`,
-            `API devices with matching packs in Mbed Studio: ${apiPacks}`,
+            `Debug targets in Mbed Studio: ${Object.keys(packs.devices).length}`,
+            `API devices with matching debug target in Mbed Studio: ${apiPacks}`,
             `API devices with matching device_name in Mbed OS ${BRANCH}: ${deviceNames}`,
-            `Mbed OS ${BRANCH} devices with a detect key : ${detectKeys.length}`
+            `Mbed OS ${BRANCH} devices with a detect key: ${detectKeys.length}`
         ]
     }];
 };
@@ -77,11 +77,11 @@ const deviceNames = (apiTargets: ApiTarget[], mbedTargets: TargetsJson): result[
 
     return [
         {
-            heading: `API devices without device name found in Mbed OS ${BRANCH}`,
+            heading: `API devices missing device name, but found in Mbed OS ${BRANCH}`,
             data: missingApi
         },
         {
-            heading: `Mbed OS ${BRANCH} devices without device name found in API`,
+            heading: `Mbed OS ${BRANCH} devices missing device name, but found in API`,
             data: missingMbed
         },
         {
@@ -117,7 +117,7 @@ const detectCodes = (apiTargets: ApiTarget[], mbedTargets: TargetsJson): result[
             data: multipleDetect
         },
         {
-            heading: `Mbed OS ${BRANCH} devices missing detect code from API`,
+            heading: `Mbed OS ${BRANCH} devices missing detect code, but found in API`,
             data: missingDetect
         }
     ];
@@ -145,11 +145,11 @@ const packDevices = (apiTargets: ApiTarget[], packs: CmsisPacks): result[] => {
 
     return [
         {
-            heading: 'API devices without device name in Mbed Studio packs',
+            heading: 'API devices without debug target not found in Mbed Studio',
             data: missing
         },
         {
-            heading: 'API devices with disabled device name in Mbed Studio packs',
+            heading: 'API devices with disabled debug target in Mbed Studio',
             data: disabled
         }
     ];
