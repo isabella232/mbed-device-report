@@ -11,16 +11,11 @@ interface result {
     data: string[];
 }
 
-const stats = (apiTargets: ApiTarget[], mbedTargets: TargetsJson, packs: CmsisPacks): result[] => {
+const stats = (apiTargets: ApiTarget[], mbedTargets: TargetsJson): result[] => {
 
-    let apiPacks = 0;
     let deviceNames = 0;
 
     apiTargets.forEach(apiTarget => {
-        if (apiTarget.device_name && packs.devices[apiTarget.device_name]) {
-            apiPacks ++;
-        }
-
         const key = apiTarget.board_type.toUpperCase();
         const mbedTarget = mbedTargets[key];
 
@@ -41,11 +36,35 @@ const stats = (apiTargets: ApiTarget[], mbedTargets: TargetsJson, packs: CmsisPa
         data: [
             `Devices in the API: ${apiTargets.length}`,
             `Devices in Mbed OS ${BRANCH}: ${Object.keys(mbedTargets).length}`,
+            `API devices with matching device_name in Mbed OS ${BRANCH}: ${deviceNames}`,
+            `Mbed OS ${BRANCH} devices with a detect key: ${detectKeys.length}`
+        ]
+    }];
+};
+
+const debug = (apiTargets: ApiTarget[], packs: CmsisPacks | undefined): result[] => {
+
+    if (!packs) {
+        return [{
+            heading: 'Debug',
+            data: [ 'CMSIS Packs failed to load' ]
+        }];
+    }
+
+    let apiPacks = 0;
+
+    apiTargets.forEach(apiTarget => {
+        if (apiTarget.device_name && packs.devices[apiTarget.device_name]) {
+            apiPacks ++;
+        }
+    });
+
+    return [{
+        heading: 'Debug',
+        data: [
             `CMSIS Packs in Mbed Studio: ${Object.keys(packs.packs).length}`,
             `Debug targets in Mbed Studio: ${Object.keys(packs.devices).length}`,
             `API devices with matching debug target in Mbed Studio: ${apiPacks}`,
-            `API devices with matching device_name in Mbed OS ${BRANCH}: ${deviceNames}`,
-            `Mbed OS ${BRANCH} devices with a detect key: ${detectKeys.length}`
         ]
     }];
 };
@@ -123,7 +142,37 @@ const detectCodes = (apiTargets: ApiTarget[], mbedTargets: TargetsJson): result[
     ];
 };
 
-const packDevices = (apiTargets: ApiTarget[], packs: CmsisPacks): result[] => {
+const productCodes = (apiTargets: ApiTarget[]): result[] => {
+
+    const codes: string[] = [];
+    const dupes: string[] = [];
+
+    apiTargets.forEach(apiTarget => {
+        const productCode = apiTarget.product_code;
+
+        if (productCode && productCode !== undefined) {
+            if (codes.indexOf(productCode) > -1) {
+                dupes.push(`${productCode} - ${apiTarget.name}`);
+            } else {
+                codes.push(productCode);
+            }
+        }
+    });
+
+    return [
+        {
+            heading: `Duplicate product_codes in API`,
+            data: dupes
+        }
+    ];
+};
+
+const packDevices = (apiTargets: ApiTarget[], packs: CmsisPacks | undefined): result[] => {
+
+    if (!packs) {
+        return [];
+    }
+
     const missing: string[] = [];
     const disabled: string[] = [];
 
@@ -160,15 +209,19 @@ export const runReport = async (): Promise<result[]> => {
     const mbedTargets = await getMbedTargets();
     const cmsisPacks = await getCmsisPacks();
 
-    const statResults = stats(apiTargets, mbedTargets, cmsisPacks);
+    const statResults = stats(apiTargets, mbedTargets);
+    const debugResults = debug(apiTargets, cmsisPacks);
     const deviceNameResults = deviceNames(apiTargets, mbedTargets);
     const detectCodeResults = detectCodes(apiTargets, mbedTargets);
     const packDeviceResults = packDevices(apiTargets, cmsisPacks);
+    const productCodesResults = productCodes(apiTargets);
 
     return [
         ...statResults,
+        ...debugResults,
         ...deviceNameResults,
         ...detectCodeResults,
-        ...packDeviceResults
+        ...packDeviceResults,
+        ...productCodesResults
     ];
 };

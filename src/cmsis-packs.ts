@@ -31,8 +31,12 @@ export interface CmsisPacks {
     }
 }
 
-export const getCmsisPacks = async (): Promise<CmsisPacks> => {
-    const response = await fetch(PACKS_URL);
-    const json = await response.json();
-    return json;
+export const getCmsisPacks = async (): Promise<CmsisPacks | undefined> => {
+    try {
+        const response = await fetch(PACKS_URL);
+        const json = await response.json();
+        return json;
+    } catch (e) {
+        return undefined
+    }
 };
